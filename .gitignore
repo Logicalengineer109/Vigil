@@ -1,0 +1,26 @@
+# Build output
+target/
+*.class
+
+# The Spark job jar in Fraud Detection/build-files/spark/ is intentionally
+# tracked — it lets the pipeline run without a Scala/Maven build first.
+
+# IDE
+.idea/
+*.iml
+*.iws
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Local runtime (models, checkpoints, logs are regenerated per machine)
+logs/
+/local-run/toolchain/
+
+# OS
+.DS_Store
+Thumbs.db

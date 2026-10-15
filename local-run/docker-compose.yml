@@ -1,0 +1,45 @@
+# Local infrastructure for the real-time fraud detection pipeline.
+# Names are prefixed "fraud-" so they never collide with other projects on this machine.
+services:
+  fraud-zookeeper:
+    image: confluentinc/cp-zookeeper:5.0.0
+    container_name: fraud-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  fraud-kafka:
+    image: confluentinc/cp-kafka:5.0.0
+    container_name: fraud-kafka
+    depends_on:
+      - fraud-zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: fraud-zookeeper:2181
+      # Dual listener: in-container clients use 29092, host clients use 9092.
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://fraud-kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  fraud-cassandra:
+    image: cassandra:3.11
+    container_name: fraud-cassandra
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: fraud-cluster
+      # Keep the footprint modest so it coexists with other containers.
+      MAX_HEAP_SIZE: 1G
+      HEAP_NEWSIZE: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe keyspaces' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
